@@ -16,11 +16,6 @@ jobs:
   node-services:
     name: Node services (lint, typecheck, test)
     runs-on: ubuntu-latest
-    services:
-      # Integration: the fields-service suite also runs against a real MongoDB (2dsphere, $nearSphere).
-      mongo:
-        image: mongo:8.0
-        ports: ['27017:27017']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -30,8 +25,18 @@ jobs:
       - run: npm run typecheck
       - name: Tests (in-memory)
         run: npm test
-      - name: Wait for MongoDB
-        run: timeout 90 bash -c 'until (echo > /dev/tcp/127.0.0.1/27017) 2>/dev/null; do sleep 1; done'
+      # Integration: the fields-service suite also runs against a real MongoDB (2dsphere, $nearSphere).
+      - name: Start MongoDB
+        run: |
+          docker run -d --name mongo -p 27017:27017 mongo:8.0
+          for i in $(seq 1 60); do
+            if docker exec mongo mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok' >/dev/null 2>&1; then
+              echo "MongoDB ready"; exit 0
+            fi
+            sleep 2
+          done
+          echo "::error title=MongoDB did not start::$(docker logs mongo 2>&1 | tail -n 5 | tr '\n' ' ')"
+          exit 1
       - name: Tests (real MongoDB)
         run: npm test -w services/fields-service
         env:
