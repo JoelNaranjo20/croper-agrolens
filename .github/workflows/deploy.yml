@@ -32,7 +32,8 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       - name: Roll out new revision
         run: |
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}/${{ matrix.app }}:${{ inputs.image_tag }}"
           az containerapp update \
             --name "agrolens-${{ matrix.app }}-${{ inputs.environment }}" \
             --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
-            --image "ghcr.io/${{ github.repository }}/${{ matrix.app }}:${{ inputs.image_tag }}"
+            --image "$IMAGE"
