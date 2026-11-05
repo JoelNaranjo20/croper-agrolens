@@ -5,7 +5,7 @@
   "description": "AgroLens — AgTech platform: field mapping, crop image analysis and yield prediction",
   "license": "MIT",
   "engines": {
-    "node": ">=22.12"
+    "node": ">=22.22.3"
   },
   "workspaces": [
     "services/fields-service",

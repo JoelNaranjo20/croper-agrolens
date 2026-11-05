@@ -41,7 +41,7 @@ powershell -ExecutionPolicy Bypass -File .\setup.ps1   # instala Node, Angular y
 
 ### Sin Docker (desarrollo)
 
-Requisitos: Node 22.12 o superior, Python 3.12 y MongoDB local.
+Requisitos: Node 22.22.3 o superior, Python 3.12 y MongoDB local.
 
 ```bash
 npm install                                   # servicios Node (npm workspaces)
