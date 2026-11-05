@@ -15,7 +15,9 @@ permissions:
 jobs:
   node-services:
     name: Node services (lint, typecheck, test)
-    runs-on: ubuntu-latest
+    # Pinned: MongoDB 8.0 refuses to start on Linux kernels >= 6.19 (SERVER-121912),
+    # which the Ubuntu 26 images behind ubuntu-latest ship.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -48,7 +50,7 @@ jobs:
 
   ai-service:
     name: AI service (ruff, pytest)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: services/ai-service
@@ -65,7 +67,7 @@ jobs:
 
   web:
     name: Web (test, production build)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: apps/web
@@ -84,7 +86,7 @@ jobs:
   images:
     name: Build & push images
     needs: [node-services, ai-service, web]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       packages: write
