@@ -17,8 +17,8 @@ jobs:
     name: Node services (lint, typecheck, test)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with: { node-version: 22, cache: npm }
       - run: npm ci
       - run: npm run lint
@@ -27,12 +27,12 @@ jobs:
         run: npm test
       # Integration: the fields-service suite also runs against a real MongoDB (2dsphere, $nearSphere).
       - name: Start MongoDB
+        # Readiness is probed over TCP from the host: running mongosh inside the container while
+        # the image entrypoint is still initialising races with its chown of /data/db.
         run: |
           docker run -d --name mongo -p 27017:27017 mongo:8.0
           for i in $(seq 1 60); do
-            if docker exec mongo mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok' >/dev/null 2>&1; then
-              echo "MongoDB ready"; exit 0
-            fi
+            if (echo > /dev/tcp/127.0.0.1/27017) 2>/dev/null; then echo "MongoDB ready"; exit 0; fi
             sleep 2
           done
           echo "::error title=MongoDB did not start::$(docker logs mongo 2>&1 | tail -n 5 | tr '\n' ' ')"
@@ -50,8 +50,8 @@ jobs:
       run:
         working-directory: services/ai-service
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           cache: pip
@@ -67,8 +67,8 @@ jobs:
       run:
         working-directory: apps/web
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -93,7 +93,7 @@ jobs:
           - { name: ai-service, context: services/ai-service, file: services/ai-service/Dockerfile, service: '' }
           - { name: web, context: apps/web, file: apps/web/Dockerfile, service: '' }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: docker/setup-buildx-action@v3
       - if: github.ref == 'refs/heads/main'
         uses: docker/login-action@v3
