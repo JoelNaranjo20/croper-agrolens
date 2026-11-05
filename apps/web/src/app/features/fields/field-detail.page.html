@@ -1,0 +1,160 @@
+<a routerLink="/" class="back">← Lotes</a>
+
+@if (notFound()) {
+  <div class="card pad">
+    <h1>Lote no encontrado</h1>
+    <a routerLink="/" class="btn">Volver</a>
+  </div>
+} @else if (loadError() && !field()) {
+  <p class="alert" role="alert">No se pudo cargar el lote. Revisa tu conexión.</p>
+} @else if (field(); as f) {
+  <header class="head">
+    <div>
+      <h1>{{ f.name }}</h1>
+      <p class="muted">
+        {{ cropInfo[f.crop].label }} · {{ fmt.ha(f.areaHa) }}
+        @if (f.soilPh) {
+          · pH {{ f.soilPh }}
+        }
+      </p>
+    </div>
+    <app-health-badge [health]="f.latestObservation?.health" />
+  </header>
+
+  <div class="grid">
+    <app-field-map class="map card" [fields]="fieldAsList()" [locatable]="false" />
+
+    <!-- Crop health from images -->
+    <section class="card pad">
+      <h2>Estado del cultivo</h2>
+      @if (f.latestObservation; as o) {
+        <dl class="stats">
+          <div>
+            <dt>Cobertura vegetal</dt>
+            <dd>{{ fmt.pct(o.vegetationCoverage) }}</dd>
+          </div>
+          <div>
+            <dt>Follaje con estrés</dt>
+            <dd>{{ fmt.pct(o.stressRatio) }}</dd>
+          </div>
+        </dl>
+        <p class="muted small">Última foto: {{ fmt.date(o.capturedAt) }}</p>
+      } @else {
+        <p class="muted">Toma una foto del cultivo para analizar su estado.</p>
+      }
+
+      <label class="btn upload" [class.disabled]="uploadPct() !== null">
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          capture="environment"
+          (change)="onPhoto($event)"
+          [disabled]="uploadPct() !== null"
+        />
+        Tomar o subir foto
+      </label>
+      @if (uploadPct() !== null) {
+        <progress max="100" [value]="uploadPct()" aria-label="Progreso de subida"></progress>
+      }
+      @if (uploadMsg()) {
+        <p class="small" aria-live="polite">{{ uploadMsg() }}</p>
+      }
+      @if (pendingHere().length) {
+        <p class="small pending">{{ pendingHere().length }} foto(s) pendiente(s) de envío.</p>
+      }
+    </section>
+
+    <!-- Yield forecast -->
+    <section class="card pad">
+      <h2>Pronóstico de rendimiento</h2>
+      <form class="forecast-form" (ngSubmit)="runForecast()">
+        <label>
+          Lluvia anual (mm)
+          <input
+            type="number"
+            inputmode="numeric"
+            name="rain"
+            min="0"
+            max="6000"
+            [(ngModel)]="rainfallMm"
+            required
+          />
+        </label>
+        <label>
+          Temperatura media (°C)
+          <input
+            type="number"
+            inputmode="decimal"
+            name="temp"
+            min="-5"
+            max="45"
+            step="0.5"
+            [(ngModel)]="avgTempC"
+            required
+          />
+        </label>
+        <button class="btn" type="submit" [disabled]="forecasting()">
+          {{ forecasting() ? 'Calculando…' : 'Calcular' }}
+        </button>
+      </form>
+
+      @if (forecastError()) {
+        <p class="alert" role="alert">{{ forecastError() }}</p>
+      }
+      @if (forecast(); as fc) {
+        <div class="result">
+          <p class="big">{{ fmt.t(fc.totalT.p50) }}</p>
+          <p class="muted small">Estimado más probable ({{ fmt.num(fc.yieldTHa.p50) }} t/ha)</p>
+          <div
+            class="band"
+            role="img"
+            [attr.aria-label]="'Rango entre ' + fmt.t(fc.totalT.p10) + ' y ' + fmt.t(fc.totalT.p90)"
+          >
+            <span class="marker" [style.left.%]="bandPct(fc)"></span>
+          </div>
+          <div class="band-labels small">
+            <span>Pesimista {{ fmt.t(fc.totalT.p10) }}</span>
+            <span>Optimista {{ fmt.t(fc.totalT.p90) }}</span>
+          </div>
+          <p class="muted small">
+            Modelo v{{ fc.modelVersion }} · cobertura usada {{ fmt.pct(fc.vegetationCoverageUsed) }}
+          </p>
+        </div>
+      }
+    </section>
+  </div>
+
+  <!-- Image history -->
+  <section class="history">
+    <h2>Historial de fotos</h2>
+    <ul class="photos">
+      @for (o of observations(); track o.id) {
+        <li class="card">
+          <img
+            [src]="imageSrc(o)"
+            alt="Foto del cultivo"
+            loading="lazy"
+            decoding="async"
+            width="320"
+            height="240"
+          />
+          <div class="photo-meta">
+            <app-health-badge [health]="o.health" />
+            <small class="muted">{{ fmt.date(o.capturedAt) }}</small>
+          </div>
+        </li>
+      } @empty {
+        <li class="muted">Aún no hay fotos.</li>
+      }
+    </ul>
+    @if (obsCursor()) {
+      <button class="btn ghost" type="button" (click)="loadMore()">Ver más</button>
+    }
+  </section>
+
+  <button class="btn danger" type="button" (click)="remove()">
+    {{ confirmDelete() ? 'Toca de nuevo para confirmar' : 'Eliminar lote' }}
+  </button>
+} @else {
+  <div class="skeleton card" aria-busy="true">Cargando…</div>
+}

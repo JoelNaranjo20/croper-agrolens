@@ -1,0 +1,103 @@
+name: agrolens
+
+# Local / demo environment. One command: `docker compose up --build`  →  http://localhost:8080
+# Production runs the same images on Azure Container Apps (see docs/deployment-azure.md).
+
+x-node-service: &node-service
+  restart: unless-stopped
+  build: &node-build
+    context: .
+    dockerfile: services/Dockerfile.node
+
+services:
+  mongo:
+    image: mongo:8.0
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ['CMD', 'mongosh', '--quiet', '--eval', 'db.adminCommand({ ping: 1 }).ok']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    ports:
+      - '27017:27017'
+
+  ai-service:
+    build: ./services/ai-service
+    restart: unless-stopped
+    environment:
+      AI_LOG_LEVEL: INFO
+    ports:
+      - '8000:8000'
+
+  fields-service:
+    <<: *node-service
+    build:
+      <<: *node-build
+      args: { SERVICE: fields-service }
+    environment:
+      NODE_ENV: production
+      PORT: 4001
+      MONGO_URI: mongodb://mongo:27017
+      MONGO_DB: agrolens
+      AI_SERVICE_URL: http://ai-service:8000
+    depends_on:
+      mongo: { condition: service_healthy }
+      ai-service: { condition: service_healthy }
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:4001/health/ready']
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  api-gateway:
+    <<: *node-service
+    build:
+      <<: *node-build
+      args: { SERVICE: api-gateway }
+    environment:
+      # Demo runs without an identity provider. In production NODE_ENV=production forbids this:
+      # set AUTH_MODE=jwt + AUTH_JWKS_URL/AUTH_ISSUER/AUTH_AUDIENCE (Entra ID, Auth0…).
+      NODE_ENV: development
+      LOG_LEVEL: info
+      PORT: 4000
+      FIELDS_SERVICE_URL: http://fields-service:4001
+      AI_SERVICE_URL: http://ai-service:8000
+      CORS_ORIGINS: http://localhost:8080,http://localhost:4200
+      AUTH_MODE: none
+      DEV_TENANT_ID: demo
+    depends_on:
+      fields-service: { condition: service_healthy }
+    ports:
+      - '4000:4000'
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:4000/health/live']
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  web:
+    build: ./apps/web
+    restart: unless-stopped
+    environment:
+      GATEWAY_URL: http://api-gateway:4000
+    depends_on:
+      api-gateway: { condition: service_healthy }
+    ports:
+      - '8080:8080'
+
+  # One-off: docker compose --profile seed run --rm seed
+  seed:
+    profiles: [seed]
+    build:
+      context: .
+      dockerfile: services/fields-service/Dockerfile.seed
+    environment:
+      MONGO_URI: mongodb://mongo:27017
+      MONGO_DB: agrolens
+    depends_on:
+      mongo: { condition: service_healthy }
+
+volumes:
+  mongo-data:

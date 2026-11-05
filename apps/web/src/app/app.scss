@@ -1,0 +1,43 @@
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 3.5rem;
+  padding: 0 max(1rem, env(safe-area-inset-left));
+  background: var(--brand-800);
+  color: #fff;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: inherit;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+.status {
+  display: flex;
+  gap: 0.4rem;
+}
+.pill {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  &.off {
+    background: #b3261e;
+  }
+  &.warn {
+    background: #c99a06;
+    color: #1d1b16;
+  }
+}
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0.75rem max(0.75rem, env(safe-area-inset-left)) 2rem;
+}

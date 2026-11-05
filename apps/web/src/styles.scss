@@ -1,0 +1,136 @@
+/* Design tokens — high contrast for outdoor, sunlight-readable use. */
+:root {
+  --brand-500: #4f9a5b;
+  --brand-700: #2f6b3b;
+  --brand-800: #234f2c;
+  --ink: #1d1b16;
+  --muted: #5f5b52;
+  --bg: #f6f4ee;
+  --surface: #ffffff;
+  --line: #d9d4c7;
+  --warn: #8a6100;
+  --danger: #b3261e;
+  --radius: 14px;
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+html,
+body {
+  overflow-x: clip;
+}
+
+body {
+  margin: 0;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif; /* no webfont download */
+  font-size: 16px; /* ≥16px prevents iOS zoom-on-focus */
+  line-height: 1.45;
+  color: var(--ink);
+  background: var(--bg);
+}
+
+a {
+  color: var(--brand-700);
+}
+
+h1 {
+  font-size: 1.4rem;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  font-weight: 400;
+  min-height: 44px; /* touch target */
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+  width: 100%;
+
+  &:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--brand-500) 50%, transparent);
+    border-color: var(--brand-500);
+  }
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 48px;
+  padding: 0 1.25rem;
+  border: 0;
+  border-radius: 12px;
+  background: var(--brand-700);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+  &.ghost {
+    background: transparent;
+    color: var(--brand-700);
+    border: 1px solid var(--line);
+  }
+  &.danger {
+    background: transparent;
+    color: var(--danger);
+    border: 1px solid currentColor;
+    width: 100%;
+  }
+}
+
+.alert {
+  padding: 0.6rem 0.8rem;
+  border-radius: 10px;
+  background: #fdecea;
+  color: var(--danger);
+  font-size: 0.9rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

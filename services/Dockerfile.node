@@ -1,0 +1,33 @@
+# syntax=docker/dockerfile:1.7
+# Shared image for Node workspaces. Build from the repo root:
+#   docker build -f services/Dockerfile.node --build-arg SERVICE=fields-service -t agrolens/fields .
+ARG NODE_VERSION=22.12-alpine
+
+FROM node:${NODE_VERSION} AS build
+ARG SERVICE
+WORKDIR /repo
+COPY package.json package-lock.json tsconfig.base.json ./
+COPY services/${SERVICE}/package.json services/${SERVICE}/
+RUN --mount=type=cache,target=/root/.npm npm ci -w services/${SERVICE} --include-workspace-root
+COPY services/${SERVICE} services/${SERVICE}
+RUN npm run build -w services/${SERVICE}
+
+FROM node:${NODE_VERSION} AS deps
+ARG SERVICE
+WORKDIR /repo
+COPY package.json package-lock.json ./
+COPY services/${SERVICE}/package.json services/${SERVICE}/
+RUN --mount=type=cache,target=/root/.npm npm ci -w services/${SERVICE} --omit=dev --ignore-scripts
+
+FROM node:${NODE_VERSION} AS runtime
+ARG SERVICE
+ENV NODE_ENV=production
+WORKDIR /app
+RUN apk add --no-cache tini
+COPY --from=deps --chown=node:node /repo/node_modules ./node_modules
+COPY --from=build --chown=node:node /repo/services/${SERVICE}/dist ./dist
+COPY --chown=node:node services/${SERVICE}/package.json ./
+USER node
+# tini as PID 1: forwards SIGTERM so graceful shutdown (close-with-grace) actually runs.
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["node", "--enable-source-maps", "dist/server.js"]

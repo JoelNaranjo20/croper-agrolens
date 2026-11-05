@@ -1,0 +1,23 @@
+[project]
+name = "agrolens-ai-service"
+version = "1.0.0"
+description = "AgroLens AI service: yield prediction & crop image analysis"
+requires-python = ">=3.12"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "N", "S", "RUF"]
+ignore = ["S101", "S311", "N803", "N806"]  # asserts in tests; synthetic RNG; sklearn X naming
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+
+[tool.coverage.run]
+source = ["app"]

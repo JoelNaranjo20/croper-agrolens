@@ -1,0 +1,35 @@
+{
+  "name": "agrolens",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AgroLens — AgTech platform: field mapping, crop image analysis and yield prediction",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "workspaces": [
+    "services/fields-service",
+    "services/api-gateway"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces",
+    "lint": "eslint . && prettier --check \"services/**/*.ts\"",
+    "format": "prettier --write \"services/**/*.ts\"",
+    "typecheck": "npm run typecheck --workspaces",
+    "dev:fields": "npm run dev -w services/fields-service",
+    "dev:gateway": "npm run dev -w services/api-gateway",
+    "seed": "npm run seed -w services/fields-service"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.19.0",
+    "@vitest/coverage-v8": "^5.1.0",
+    "eslint": "^10.14.0",
+    "prettier": "^3.9.10",
+    "tsx": "^4.23.15",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.72.1",
+    "vitest": "^5.1.0"
+  }
+}
