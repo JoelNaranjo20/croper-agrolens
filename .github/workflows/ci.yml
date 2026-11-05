@@ -27,20 +27,23 @@ jobs:
         run: npm test
       # Integration: the fields-service suite also runs against a real MongoDB (2dsphere, $nearSphere).
       - name: Start MongoDB
-        # Readiness is probed over TCP from the host: running mongosh inside the container while
-        # the image entrypoint is still initialising races with its chown of /data/db.
+        # Readiness = a real `ping` through the Node driver from the host. (A bare TCP probe is a
+        # false positive: docker-proxy accepts connections before mongod listens; and mongosh
+        # inside the container races with the image entrypoint's chown of /data/db.)
         run: |
           docker run -d --name mongo -p 27017:27017 mongo:8.0
-          for i in $(seq 1 60); do
-            if (echo > /dev/tcp/127.0.0.1/27017) 2>/dev/null; then echo "MongoDB ready"; exit 0; fi
+          for i in $(seq 1 45); do
+            if node -e "require('mongodb').MongoClient.connect('mongodb://127.0.0.1:27017',{serverSelectionTimeoutMS:1500}).then(c=>c.db().command({ping:1}).then(()=>c.close())).then(()=>process.exit(0),()=>process.exit(1))"; then
+              echo "MongoDB ready"; exit 0
+            fi
             sleep 2
           done
-          echo "::error title=MongoDB did not start::$(docker logs mongo 2>&1 | tail -n 5 | tr '\n' ' ')"
+          echo "::error title=MongoDB did not start::$(docker ps -a --filter name=mongo --format '{{.Status}}') $(docker logs mongo 2>&1 | tail -n 8 | tr '\n' ' ')"
           exit 1
       - name: Tests (real MongoDB)
         run: npm test -w services/fields-service
         env:
-          MONGO_TEST_URI: mongodb://localhost:27017
+          MONGO_TEST_URI: mongodb://127.0.0.1:27017
       - run: npm run build
 
   ai-service:
