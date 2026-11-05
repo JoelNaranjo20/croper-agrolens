@@ -15,8 +15,6 @@ permissions:
 jobs:
   node-services:
     name: Node services (lint, typecheck, test)
-    # Pinned: MongoDB 8.0 refuses to start on Linux kernels >= 6.19 (SERVER-121912),
-    # which the Ubuntu 26 images behind ubuntu-latest ship.
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
@@ -33,7 +31,8 @@ jobs:
         # false positive: docker-proxy accepts connections before mongod listens; and mongosh
         # inside the container races with the image entrypoint's chown of /data/db.)
         run: |
-          docker run -d --name mongo -p 27017:27017 mongo:8.0
+          # Kernel >= 6.19 breaks MongoDB 8.x startup (SERVER-121912); let glibc own rseq.
+          docker run -d --name mongo -p 27017:27017 -e GLIBC_TUNABLES=glibc.pthread.rseq=1 mongo:8.0
           for i in $(seq 1 45); do
             if node -e "require('mongodb').MongoClient.connect('mongodb://127.0.0.1:27017',{serverSelectionTimeoutMS:1500}).then(c=>c.db().command({ping:1}).then(()=>c.close())).then(()=>process.exit(0),()=>process.exit(1))"; then
               echo "MongoDB ready"; exit 0
