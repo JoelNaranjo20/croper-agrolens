@@ -21,9 +21,6 @@ jobs:
       mongo:
         image: mongo:8.0
         ports: ['27017:27017']
-        options: >-
-          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ping:1}).ok'"
-          --health-interval 5s --health-timeout 5s --health-retries 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -33,6 +30,8 @@ jobs:
       - run: npm run typecheck
       - name: Tests (in-memory)
         run: npm test
+      - name: Wait for MongoDB
+        run: timeout 90 bash -c 'until (echo > /dev/tcp/127.0.0.1/27017) 2>/dev/null; do sleep 1; done'
       - name: Tests (real MongoDB)
         run: npm test -w services/fields-service
         env:
